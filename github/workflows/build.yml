@@ -1,0 +1,110 @@
+name: Build NAS TV APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create project folders
+        run: |
+          mkdir -p app/src/main/java/com/nastv/app
+          mkdir -p app/src/main/assets
+          mkdir -p app/src/main/res/values
+
+      - name: Create settings.gradle
+        run: |
+          cat > settings.gradle <<'EOF'
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          rootProject.name = "NAS-TV"
+          include(":app")
+          EOF
+
+      - name: Create build.gradle
+        run: |
+          cat > build.gradle <<'EOF'
+          plugins {
+              id 'com.android.application' version '9.5.0' apply false
+          }
+          EOF
+
+      - name: Create gradle.properties
+        run: |
+          cat > gradle.properties <<'EOF'
+          org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+          android.useAndroidX=true
+          android.nonTransitiveRClass=true
+          EOF
+
+      - name: Create app build.gradle
+        run: |
+          cat > app/build.gradle <<'EOF'
+          plugins {
+              id 'com.android.application'
+          }
+
+          android {
+              namespace 'com.nastv.app'
+              compileSdk 36
+
+              defaultConfig {
+                  applicationId 'com.nastv.app'
+                  minSdk 23
+                  targetSdk 36
+                  versionCode 1
+                  versionName "1.0"
+              }
+
+              buildTypes {
+                  release {
+                      minifyEnabled false
+                  }
+              }
+          }
+          EOF
+
+      - name: Create Manifest
+        run: |
+          cat > app/src/main/AndroidManifest.xml <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <uses-permission android:name="android.permission.INTERNET"/>
+              <application
+                  android:allowBackup="true"
+                  android:usesCleartextTraffic="true"
+                  android:theme="@style/AppTheme"
+                  android:label="NAS TV">
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN"/>
+                          <category android:name="android.intent.category.LAUNCHER"/>
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+
+      - name: Create
